@@ -8,6 +8,8 @@
   --color-background-900: #212529;
   --color-red: #fa5252;
   --color-red-dark: #e03131;
+  --animation-speed: 1.6;
+  --interval: var(--animation-speed) / 4;
 }
 
 * {
@@ -28,6 +30,9 @@ body {
   background-color: var(--color-background-900);
 
   padding: 2.4rem;
+}
+::-webkit-scrollbar {
+  display: none; /* This hides the scrollbar */
 }
 
 /* ******* */
@@ -380,3 +385,60 @@ EMPTY STAR
 </svg>
 
 */
+
+@keyframes movement {
+  from {
+    transform: scale(0);
+    left: 0%;
+    z-index: -1;
+  }
+  25% {
+    transform: scale(1);
+    left: 0%;
+  }
+  30% {
+    transform: scale(1);
+    left: 0%;
+  }
+  50% {
+    transform: scale(1);
+    left: 25%;
+  }
+  55% {
+    transform: scale(1);
+    left: 25%;
+  }
+  75% {
+    transform: scale(1);
+    left: 50%;
+  }
+  80% {
+    transform: scale(1);
+    left: 50%;
+  }
+  100% {
+    transform: scale(0);
+    left: 75%;
+    z-index: 9;
+  }
+}
+.ball1 {
+  background-color: rgb(192, 184, 184);
+  animation: movement var(--animation-speed) + s var(var(--interval)) * 0 + s
+    linear infinite;
+}
+.ball2 {
+  background-color: rgb(192, 184, 184);
+  animation: movement var(--animation-speed) + s var(--interval) * -1 + s linear
+    infinite;
+}
+.ball3 {
+  background-color: white;
+  animation: movement var(--animation-speed) + s var(--interval) * -2 + s linear
+    infinite;
+}
+.ball4 {
+  background-color: white;
+  animation: movement var(--animation-speed) + s var(var(--interval)) * -3 + s
+    linear infinite;
+}
