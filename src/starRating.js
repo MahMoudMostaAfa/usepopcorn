@@ -12,7 +12,7 @@ const starStyle = {
 };
 export default function StarRating({
   maxRating = 5,
-  color = "#333",
+  color = "gold",
   size = 48,
 }) {
   const [rating, setRating] = useState(0);
@@ -54,8 +54,8 @@ function Star({ onRate, rating, full, onHover, onLeave }) {
       style={star}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 20 20"
-      fill="#000"
-      stroke="#000"
+      fill="gold"
+      stroke="gold"
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
     >
@@ -69,7 +69,7 @@ function Star({ onRate, rating, full, onHover, onLeave }) {
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
-      stroke="#000"
+      stroke="gold"
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
     >
