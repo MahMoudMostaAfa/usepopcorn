@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StarRating from "./starRating";
-
+import { useMovies } from "./useMovies";
 const average = (arr) =>
   arr.reduce((acc, cur, _, arr) => acc + cur / arr.length, 0);
-
 const KEY = "291d12b6";
 export default function App() {
-  // const tempQuary = "titanic";
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [watched, setWatched] = useState(function () {
@@ -23,7 +18,7 @@ export default function App() {
     setSelectedId(null);
   }
   function handleAddedWatchedMovie(movie) {
-    const found = watched.find((mv) => mv.title == movie.title);
+    const found = watched.find((mv) => mv.title === movie.title);
     const newWatched = watched.filter((ms) => ms !== found);
     setWatched((watched) => [...newWatched, movie]);
     // localStorage.setItem("watched", JSON.stringify([...newWatched, movie])); // store to local storage
@@ -31,47 +26,13 @@ export default function App() {
   function handleDeleteWatched(id) {
     setWatched((watched) => watched.filter((movie) => movie.imdbID !== id));
   }
+  //* this is custom hook
+  const { isLoading, movies, error } = useMovies(query, handleCloseMovie);
   useEffect(
     function () {
       localStorage.setItem("watched", JSON.stringify(watched));
     },
     [watched]
-  );
-  useEffect(
-    function () {
-      const controller = new AbortController(); // to solve multiple request at the same time
-      async function fetchMovies() {
-        try {
-          setIsLoading(true);
-          setError("");
-          const res = await fetch(
-            `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
-            { signal: controller.signal } // for solve multiple request
-          );
-          if (!res.ok) throw new Error("can't fetch data");
-          const data = await res.json();
-          if (data.Response === "False") throw new Error("can not find movie");
-          setMovies(data.Search);
-          setError("");
-        } catch (err) {
-          if (error.message !== "AbortError") setError(err.message);
-          setError("");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-      if (query.length < 3) {
-        setMovies([]);
-        setError("");
-        return;
-      }
-      handleCloseMovie();
-      fetchMovies();
-      return function () {
-        controller.abort();
-      };
-    },
-    [query]
   );
 
   return (
@@ -94,6 +55,7 @@ export default function App() {
               selectedId={selectedId}
               onCloseMovie={handleCloseMovie}
               onAddedWatchedMovie={handleAddedWatchedMovie}
+              watched={watched}
             />
           ) : (
             <>
@@ -129,6 +91,32 @@ function NavBar({ children }) {
   );
 }
 function Search({ query, setQuery }) {
+  // useEffect(function () {
+  //   const el = document.querySelector(".search");
+  //   el.focus();
+  // }, []);
+  const inputEl = useRef(null);
+
+  useEffect(
+    function () {
+      inputEl.current.focus();
+      function callBack(e) {
+        if (document.activeElement === inputEl.current) return;
+
+        if (e.code === "Enter") {
+          inputEl.current.focus();
+          setQuery("");
+        }
+      }
+
+      document.addEventListener("keydown", callBack);
+
+      return function () {
+        document.removeEventListener("keydown", callBack);
+      };
+    },
+    [setQuery]
+  );
   return (
     <input
       className="search"
@@ -136,6 +124,7 @@ function Search({ query, setQuery }) {
       placeholder="Search movies..."
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      ref={inputEl}
     />
   );
 }
@@ -207,9 +196,21 @@ function Movie({ movie, onSelectMovie }) {
     </li>
   );
 }
-function MovieDetails({ selectedId, onCloseMovie, onAddedWatchedMovie }) {
+function MovieDetails({
+  selectedId,
+  onCloseMovie,
+  onAddedWatchedMovie,
+  watched,
+}) {
   const [movie, setMovie] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const isWatched = watched.map((el) => el.imdbID).includes(selectedId);
+  const [userRating, setUserRating] = useState("");
+  const watchedUserRating = watched.find(
+    (el) => el.imdbID === selectedId
+  )?.userRating;
+  const countRef = useRef(0);
+
   const {
     Title: title,
     Year: year,
@@ -232,11 +233,19 @@ function MovieDetails({ selectedId, onCloseMovie, onAddedWatchedMovie }) {
       imdbRating: Number(imdbRating),
       runtime: Number(runtime.split(" ").at(0)),
       userRating,
+      countDecision: countRef.current,
     };
     onAddedWatchedMovie(newMovie);
     onCloseMovie();
   }
-  const [userRating, setUserRating] = useState("");
+  useEffect(
+    function () {
+      // we conditon because useeffect will update on mount
+      if (userRating) countRef.current++;
+    },
+    [userRating]
+  );
+
   useEffect(
     function () {
       async function getMovieDetails() {
@@ -304,16 +313,23 @@ function MovieDetails({ selectedId, onCloseMovie, onAddedWatchedMovie }) {
           </header>
           <section>
             <div className="rating">
-              <StarRating
-                maxRating={10}
-                size={24}
-                onSetRating={setUserRating}
-              />
+              {isWatched ? (
+                <p>
+                  You rated this movie with {watchedUserRating} <span>⭐️</span>
+                </p>
+              ) : (
+                <StarRating
+                  maxRating={10}
+                  size={24}
+                  onSetRating={setUserRating}
+                />
+              )}
             </div>
+
             {userRating > 0 && (
               <button className="btn-add" onClick={handleAdded}>
                 {" "}
-                add to list{" "}
+                + Add to list
               </button>
             )}
 
@@ -321,7 +337,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddedWatchedMovie }) {
               <em>{plot}</em>
             </p>
             <p>starring {actors}</p>
-            <p>Director by {director == "N/A" ? "unknown" : director}</p>
+            <p>Director by {director === "N/A" ? "unknown" : director}</p>
           </section>
         </>
       )}
